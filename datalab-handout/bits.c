@@ -177,7 +177,9 @@ int isTmax(int x) {
  *   Rating: 2
  */
 int allOddBits(int x) {
-  return 2;
+  /* All odd bits is 0xAAAAAAAA, so if ~x & 0xAAAAAAAA == 0x00, then return 1 */
+  int odd_bits = 0xAA + (0xAA << 8) + (0xAA << 16) + (0xAA << 24);
+  return !(odd_bits & ~x);
 }
 /* 
  * negate - return -x 
@@ -187,7 +189,7 @@ int allOddBits(int x) {
  *   Rating: 2
  */
 int negate(int x) {
-  return 2;
+  return ~x + 1;
 }
 //3
 /* 
@@ -200,7 +202,9 @@ int negate(int x) {
  *   Rating: 3
  */
 int isAsciiDigit(int x) {
-  return 2;
+  int a = ((x & 0xF) + 6) >> 4;  // this would be 0x1 if x & 0xF >= 10, else 0x0
+  int b = ~0xF & x; // should be 0x30 if True
+  return !(b ^ 0x30) & !a;
 }
 /* 
  * conditional - same as x ? y : z 
@@ -210,7 +214,8 @@ int isAsciiDigit(int x) {
  *   Rating: 3
  */
 int conditional(int x, int y, int z) {
-  return 2;
+  int mask = !x << 31 >> 31;  // would be all 0 if True, all 1 if False
+  return (~mask & y) ^ (mask & z);
 }
 /* 
  * isLessOrEqual - if x <= y  then return 1, else return 0 
@@ -220,7 +225,16 @@ int conditional(int x, int y, int z) {
  *   Rating: 3
  */
 int isLessOrEqual(int x, int y) {
-  return 2;
+  // case 1, x + (-y) < 0, then the leading bit is 1.
+  // case 2, x + (-y) == 0, meaning x == y.
+  // case 3, x is negative y is positive, x + (-y) may overflow.
+  // case 4, x is positive y is negative, x + (-y) may overflow.
+  int a = x + ~y + 1;
+  int case1 = a >> 31;
+  int case2 = !a;
+  int case3 = (x >> 31) & ~(y >> 31);
+  int case4 = !(~(x >> 31) & (y >> 31));
+  return (case1 | case2 | case3) & case4;
 }
 //4
 /* 
@@ -232,7 +246,12 @@ int isLessOrEqual(int x, int y) {
  *   Rating: 4 
  */
 int logicalNeg(int x) {
-  return 2;
+  x |= x >> 16;
+  x |= x >> 8;
+  x |= x >> 4;
+  x |= x >> 2;
+  x |= x >> 1;
+  return (x & 1) ^ 1;
 }
 /* howManyBits - return the minimum number of bits required to represent x in
  *             two's complement
