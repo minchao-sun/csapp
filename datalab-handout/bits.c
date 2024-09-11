@@ -166,7 +166,7 @@ int tmin(void) {
  */
 int isTmax(int x) {
   /* With int32, tmax = 0x7fffffff */
-  return !(x + 2 + x) & !!(~x);
+  return !((x + 2 + x) | !(~x));
 }
 /* 
  * allOddBits - return 1 if all odd-numbered bits in word set to 1
@@ -266,76 +266,26 @@ int logicalNeg(int x) {
  *  Rating: 4
  */
 int howManyBits(int x) {
-  int result = 1;
-  int tmp = 0;
   // if x < 0 (has a leading 1), then x >> 31 is all 1. Otherwise it is all 0.
   // (All 1) ^ x would be ~x. (All 0) ^ x would be x 
-  // We want to reverse the negative x because we know if a positive number +x
-  // can fit in a two's complement of word size w, then -x would fit in this word size.
-  x = (x >> 31) ^ x;
-  tmp |= (x >> 30) & 1;
-  result += tmp;
-  tmp |= (x >> 29) & 1;
-  result += tmp;
-  tmp |= (x >> 28) & 1;
-  result += tmp;
-  tmp |= (x >> 27) & 1;
-  result += tmp;
-  tmp |= (x >> 26) & 1;
-  result += tmp;
-  tmp |= (x >> 25) & 1;
-  result += tmp;
-  tmp |= (x >> 24) & 1;
-  result += tmp;
-  tmp |= (x >> 23) & 1;
-  result += tmp;
-  tmp |= (x >> 22) & 1;
-  result += tmp;
-  tmp |= (x >> 21) & 1;
-  result += tmp;
-  tmp |= (x >> 20) & 1;
-  result += tmp;
-  tmp |= (x >> 19) & 1;
-  result += tmp;
-  tmp |= (x >> 18) & 1;
-  result += tmp;
-  tmp |= (x >> 17) & 1;
-  result += tmp;
-  tmp |= (x >> 16) & 1;
-  result += tmp;
-  tmp |= (x >> 15) & 1;
-  result += tmp;
-  tmp |= (x >> 14) & 1;
-  result += tmp;
-  tmp |= (x >> 13) & 1;
-  result += tmp;
-  tmp |= (x >> 12) & 1;
-  result += tmp;
-  tmp |= (x >> 11) & 1;
-  result += tmp;
-  tmp |= (x >> 10) & 1;
-  result += tmp;
-  tmp |= (x >> 9) & 1;
-  result += tmp;
-  tmp |= (x >> 8) & 1;
-  result += tmp;
-  tmp |= (x >> 7) & 1;
-  result += tmp;
-  tmp |= (x >> 6) & 1;
-  result += tmp;
-  tmp |= (x >> 5) & 1;
-  result += tmp;
-  tmp |= (x >> 4) & 1;
-  result += tmp;
-  tmp |= (x >> 3) & 1;
-  result += tmp;
-  tmp |= (x >> 2) & 1;
-  result += tmp;
-  tmp |= (x >> 1) & 1;
-  result += tmp;
-  tmp |= x & 1;
-  result += tmp;
-  return result;
+  // We want to invert the negative x because we know if a positive number +x
+  // can fit in a two's complement of word size w, then -x-1 would fit in this word size.
+  int bit16, bit8, bit4, bit2, bit1, bit0;
+  x = (x >> 31) ^ x; // invert bits for neg
+  // binary search on bits
+  bit16 = (!!(x >> 16)) << 4;
+  x >>= bit16;
+  bit8 = (!!(x >> 8)) << 3;
+  x >>= bit8;
+  bit4 = (!!(x >> 4)) << 2;
+  x >>= bit4;
+  bit2 = (!!(x >> 2)) << 1;
+  x >>= bit2;
+  bit1 = x >> 1;
+  x >>= bit1;
+  bit0 = x;
+  
+  return bit16 + bit8 + bit4 + bit2 + bit1 + bit0 + 1;
 }
 //float
 /* 
