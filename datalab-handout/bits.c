@@ -300,7 +300,17 @@ int howManyBits(int x) {
  *   Rating: 4
  */
 unsigned floatScale2(unsigned uf) {
-  return 2;
+  int e;
+  // NaN or inf
+  if ((uf & 0x7f800000) == 0x7f800000)
+    return uf;
+  // case: Exp part all 0. FP32 would not have implict leading bit 1
+  // frac part left shift by 1
+  if ((uf & 0x7f800000) == 0)
+    return ((uf << 1) & 0xffffff) | (uf & 0x80000000);
+  // Exp part plus 1
+  e = (uf + 0x00800000) & 0x7f800000;
+  return (uf & 0x807fffff) | e;
 }
 /* 
  * floatFloat2Int - Return bit-level equivalent of expression (int) f
@@ -315,7 +325,22 @@ unsigned floatScale2(unsigned uf) {
  *   Rating: 4
  */
 int floatFloat2Int(unsigned uf) {
-  return 2;
+  // NaN or infinity
+  int exp, frac, bias;
+  if ((uf & 0x7f800000) == 0x7f800000)
+    return 0x80000000u;
+  exp = uf & 0x7f800000;
+  frac = uf & 0x007fffff;
+  bias = (exp >> 23) - 127;
+  if (bias < 0) return 0;
+  if (bias > 32) return 0x80000000u;
+  bias -= 23;
+  frac = frac + 0x00800000;
+  if (bias < 0) frac >>= -bias;
+  else frac = (frac << bias) & 0x7fffffff;
+  if (uf & 0x80000000)
+    return ~frac + 1;
+  return frac;
 }
 /* 
  * floatPower2 - Return bit-level equivalent of the expression 2.0^x
@@ -331,5 +356,7 @@ int floatFloat2Int(unsigned uf) {
  *   Rating: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+  if (x < -126) return 0;
+  if (x > 127) return 0x07f800000;
+  return ((x + 127) & 0xff) << 23;
 }

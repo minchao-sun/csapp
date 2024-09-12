@@ -9,7 +9,7 @@ def ishow(number):
     # Binary and hexadecimal representation
     bin_rep = bin(number)[2:].zfill(32)         # Stripping '0b' and padding to 32 bits
     bin_rep = ' '.join([bin_rep[i:i+4] for i in range(0, len(bin_rep), 4)])
-    hex_rep = hex(number).zfill(8)
+    hex_rep = '0x' + hex(number)[2:].zfill(8)
     # Calculate the signed int representation
     if number <= 0x7FFFFFFF:
         signed_int = number  # Positive number, same as unsigned
