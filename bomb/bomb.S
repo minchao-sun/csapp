@@ -520,80 +520,88 @@ Disassembly of section .text:
   4010fa:	55                   	push   %rbp
   4010fb:	53                   	push   %rbx
   4010fc:	48 83 ec 50          	sub    $0x50,%rsp
-  401100:	49 89 e5             	mov    %rsp,%r13
-  401103:	48 89 e6             	mov    %rsp,%rsi
+  401100:	49 89 e5             	mov    %rsp,%r13  # r13 = rsp
+  401103:	48 89 e6             	mov    %rsp,%rsi  # rsi = rsp
   401106:	e8 51 03 00 00       	call   40145c <read_six_numbers>
-  40110b:	49 89 e6             	mov    %rsp,%r14
-  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d
-  401114:	4c 89 ed             	mov    %r13,%rbp
-  401117:	41 8b 45 00          	mov    0x0(%r13),%eax
-  40111b:	83 e8 01             	sub    $0x1,%eax
-  40111e:	83 f8 05             	cmp    $0x5,%eax
-  401121:	76 05                	jbe    401128 <phase_6+0x34>
+  40110b:	49 89 e6             	mov    %rsp,%r14  # r14 = rsp
+  40110e:	41 bc 00 00 00 00    	mov    $0x0,%r12d # r12d = 0
+  401114:	4c 89 ed             	mov    %r13,%rbp  # rbp = r13
+  401117:	41 8b 45 00          	mov    0x0(%r13),%eax  # eax = M[r13], input1, input2, ...
+  40111b:	83 e8 01             	sub    $0x1,%eax  # eax -= 1 ***breakpoint
+  40111e:	83 f8 05             	cmp    $0x5,%eax  # assert 0 <= eax <= 5 (1 <= inputs <= 6)
+  401121:	76 05                	jbe    401128 <phase_6+0x34>  # unsigned <=
   401123:	e8 12 03 00 00       	call   40143a <explode_bomb>
-  401128:	41 83 c4 01          	add    $0x1,%r12d
-  40112c:	41 83 fc 06          	cmp    $0x6,%r12d
+  ; above code ensures each 1 <= element <= 6
+  401128:	41 83 c4 01          	add    $0x1,%r12d # r12d += 1 (from 0)
+  40112c:	41 83 fc 06          	cmp    $0x6,%r12d # 6, r12d (start from 1 to 6)
   401130:	74 21                	je     401153 <phase_6+0x5f>
-  401132:	44 89 e3             	mov    %r12d,%ebx
-  401135:	48 63 c3             	movslq %ebx,%rax
-  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax
-  40113b:	39 45 00             	cmp    %eax,0x0(%rbp)
-  40113e:	75 05                	jne    401145 <phase_6+0x51>
+  401132:	44 89 e3             	mov    %r12d,%ebx # ebx = r12d (start from 1 to 5)
+  401135:	48 63 c3             	movslq %ebx,%rax  # rax = ebx
+  401138:	8b 04 84             	mov    (%rsp,%rax,4),%eax # eax = M[rsp + 4*rax] (input2 ... input6)
+  40113b:	39 45 00             	cmp    %eax,0x0(%rbp) # eax, M[rbp]
+  40113e:	75 05                	jne    401145 <phase_6+0x51>  # assert eax != M[rbp]
   401140:	e8 f5 02 00 00       	call   40143a <explode_bomb>
-  401145:	83 c3 01             	add    $0x1,%ebx
-  401148:	83 fb 05             	cmp    $0x5,%ebx
-  40114b:	7e e8                	jle    401135 <phase_6+0x41>
-  40114d:	49 83 c5 04          	add    $0x4,%r13
+  401145:	83 c3 01             	add    $0x1,%ebx  # ebx += 1
+  401148:	83 fb 05             	cmp    $0x5,%ebx  # 5, ebx
+  40114b:	7e e8                	jle    401135 <phase_6+0x41> # jmp if ebx <= 5
+  40114d:	49 83 c5 04          	add    $0x4,%r13  # r13 += 4, mov ptr to nxt
   401151:	eb c1                	jmp    401114 <phase_6+0x20>
-  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi
-  401158:	4c 89 f0             	mov    %r14,%rax
-  40115b:	b9 07 00 00 00       	mov    $0x7,%ecx
-  401160:	89 ca                	mov    %ecx,%edx
-  401162:	2b 10                	sub    (%rax),%edx
-  401164:	89 10                	mov    %edx,(%rax)
-  401166:	48 83 c0 04          	add    $0x4,%rax
-  40116a:	48 39 f0             	cmp    %rsi,%rax
+  ; above code ensures each element is distinct
+  401153:	48 8d 74 24 18       	lea    0x18(%rsp),%rsi  # rsi=rsp + 24, addr of inputs.end()
+  401158:	4c 89 f0             	mov    %r14,%rax    # rax = addr of inputs[0]
+  40115b:	b9 07 00 00 00       	mov    $0x7,%ecx    # ecx = 7
+  401160:	89 ca                	mov    %ecx,%edx    # edx = 7
+  401162:	2b 10                	sub    (%rax),%edx  # edx = 7 - M[rax]
+  401164:	89 10                	mov    %edx,(%rax)  # M[rax] = 7 - M[rax]
+  401166:	48 83 c0 04          	add    $0x4,%rax    # rax->next
+  40116a:	48 39 f0             	cmp    %rsi,%rax    # while loop range inputs
   40116d:	75 f1                	jne    401160 <phase_6+0x6c>
-  40116f:	be 00 00 00 00       	mov    $0x0,%esi
+  ; above code makes M[i] = 7 - M[i] for i in range(6)
+  40116f:	be 00 00 00 00       	mov    $0x0,%esi    # esi = 0
   401174:	eb 21                	jmp    401197 <phase_6+0xa3>
-  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx
-  40117a:	83 c0 01             	add    $0x1,%eax
-  40117d:	39 c8                	cmp    %ecx,%eax
+  401176:	48 8b 52 08          	mov    0x8(%rdx),%rdx   # rdx = rdx + 8, next ptr
+  40117a:	83 c0 01             	add    $0x1,%eax        # eax += 1
+  40117d:	39 c8                	cmp    %ecx,%eax        # while eax != 7, jmp, until rbx = last node
   40117f:	75 f5                	jne    401176 <phase_6+0x82>
   401181:	eb 05                	jmp    401188 <phase_6+0x94>
-  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx
-  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2)
-  40118d:	48 83 c6 04          	add    $0x4,%rsi
-  401191:	48 83 fe 18          	cmp    $0x18,%rsi
+  401183:	ba d0 32 60 00       	mov    $0x6032d0,%edx   # edx = 0x6032d0 (head node addr)
+  401188:	48 89 54 74 20       	mov    %rdx,0x20(%rsp,%rsi,2) # M[rsp + 32 + 2*rsi] = rdx
+  40118d:	48 83 c6 04          	add    $0x4,%rsi  # rsi += 4
+  401191:	48 83 fe 18          	cmp    $0x18,%rsi  # while (6--)
   401195:	74 14                	je     4011ab <phase_6+0xb7>
-  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx
-  40119a:	83 f9 01             	cmp    $0x1,%ecx
+  401197:	8b 0c 34             	mov    (%rsp,%rsi,1),%ecx  # ecx = M[rsp + rsi]
+  40119a:	83 f9 01             	cmp    $0x1,%ecx           # jmp if ecx <= 1
   40119d:	7e e4                	jle    401183 <phase_6+0x8f>
-  40119f:	b8 01 00 00 00       	mov    $0x1,%eax
-  4011a4:	ba d0 32 60 00       	mov    $0x6032d0,%edx
+  40119f:	b8 01 00 00 00       	mov    $0x1,%eax           # eax = 1
+  4011a4:	ba d0 32 60 00       	mov    $0x6032d0,%edx      # edx = 0x6032d0
   4011a9:	eb cb                	jmp    401176 <phase_6+0x82>
-  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx
-  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax
-  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi
-  4011ba:	48 89 d9             	mov    %rbx,%rcx
-  4011bd:	48 8b 10             	mov    (%rax),%rdx
-  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx)
-  4011c4:	48 83 c0 08          	add    $0x8,%rax
-  4011c8:	48 39 f0             	cmp    %rsi,%rax
+  ; above code make a NodeList [node(7-x1), node(7-x2), ..., node(7-x6)] placed at ($rsp + 0x20)
+  4011ab:	48 8b 5c 24 20       	mov    0x20(%rsp),%rbx     # rbx = NodeList[0]
+  4011b0:	48 8d 44 24 28       	lea    0x28(%rsp),%rax     # rax = rsp + 0x28, NodeList[1]
+  4011b5:	48 8d 74 24 50       	lea    0x50(%rsp),%rsi     # rsi = rsp + 0x50, nullptr
+  4011ba:	48 89 d9             	mov    %rbx,%rcx           # rcx = rbx = NodeList[0];
+
+  4011bd:	48 8b 10             	mov    (%rax),%rdx         # rdx = M[rax]
+  4011c0:	48 89 51 08          	mov    %rdx,0x8(%rcx)      # M[rcx + 8] = rdx
+  4011c4:	48 83 c0 08          	add    $0x8,%rax           # rax -> next
+  4011c8:	48 39 f0             	cmp    %rsi,%rax           # if (5-- == 0) jmp
   4011cb:	74 05                	je     4011d2 <phase_6+0xde>
-  4011cd:	48 89 d1             	mov    %rdx,%rcx
+  4011cd:	48 89 d1             	mov    %rdx,%rcx           # rcx = rdx
   4011d0:	eb eb                	jmp    4011bd <phase_6+0xc9>
-  4011d2:	48 c7 42 08 00 00 00 	movq   $0x0,0x8(%rdx)
+  4011d2:	48 c7 42 08 00 00 00 	movq   $0x0,0x8(%rdx)      # set last node -> next = nullptr
+  ; above code reorder the ListNodes' ptr
   4011d9:	00 
-  4011da:	bd 05 00 00 00       	mov    $0x5,%ebp
-  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax
-  4011e3:	8b 00                	mov    (%rax),%eax
-  4011e5:	39 03                	cmp    %eax,(%rbx)
+  4011da:	bd 05 00 00 00       	mov    $0x5,%ebp       # ebp = 5
+  4011df:	48 8b 43 08          	mov    0x8(%rbx),%rax  # rax = NodeList[1]
+  4011e3:	8b 00                	mov    (%rax),%eax     # eax = NodeList[1]
+  4011e5:	39 03                	cmp    %eax,(%rbx)     # assert NodeList[0] >= NodeList[1]
   4011e7:	7d 05                	jge    4011ee <phase_6+0xfa>
   4011e9:	e8 4c 02 00 00       	call   40143a <explode_bomb>
   4011ee:	48 8b 5b 08          	mov    0x8(%rbx),%rbx
   4011f2:	83 ed 01             	sub    $0x1,%ebp
   4011f5:	75 e8                	jne    4011df <phase_6+0xeb>
+  ; above code requires the nodes sorted [node1: 14c, node2: a8, node3: 39c, node4: 2b3, node5: 1dd, node6: 1bb]
+  ; sorted result (descending order): [node3, node4, node5, node6, node1, node2], so the input is "4 3 2 1 6 5"
   4011f7:	48 83 c4 50          	add    $0x50,%rsp
   4011fb:	5b                   	pop    %rbx
   4011fc:	5d                   	pop    %rbp
@@ -627,9 +635,9 @@ Disassembly of section .text:
 0000000000401242 <secret_phase>:
   401242:	53                   	push   %rbx
   401243:	e8 56 02 00 00       	call   40149e <read_line>
-  401248:	ba 0a 00 00 00       	mov    $0xa,%edx
-  40124d:	be 00 00 00 00       	mov    $0x0,%esi
-  401252:	48 89 c7             	mov    %rax,%rdi
+  401248:	ba 0a 00 00 00       	mov    $0xa,%edx   # edx = 10
+  40124d:	be 00 00 00 00       	mov    $0x0,%esi   # esi = 0
+  401252:	48 89 c7             	mov    %rax,%rdi   # rdi = rax
   401255:	e8 76 f9 ff ff       	call   400bd0 <strtol@plt>
   40125a:	48 89 c3             	mov    %rax,%rbx
   40125d:	8d 40 ff             	lea    -0x1(%rax),%eax
