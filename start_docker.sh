@@ -31,3 +31,6 @@ csapp_image /bin/bash
 # (gdb) x/s 0x402400
 # 0x402400:	"Border relations with Canada have never been better."
 # (gdb) quit
+
+# Attack lab
+# qemu-x86_64-static -g 1234 ./ctarget -- -q
