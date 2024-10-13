@@ -12,14 +12,20 @@ word_t src[8], dst[8];
 word_t ncopy(word_t *src, word_t *dst, word_t len)
 {
     word_t count = 0;
-    word_t val;
+    word_t val1, val2;
 
-    while (len > 0) {
-	val = *src++;
-	*dst++ = val;
-	if (val > 0)
-	    count++;
-	len--;
+    while (len > 1) {
+        val1 = *src;
+        *dst = val1;
+        val2 = *(src+1);
+        *(dst+1) = val2;
+        if (val1 > 0)
+            count++;
+        if (val2 > 0)
+            count++;
+        len -= 2;
+        src += 2;
+        dst += 2;
     }
     return count;
 }

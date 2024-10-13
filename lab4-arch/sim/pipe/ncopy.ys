@@ -17,21 +17,95 @@ ncopy:
 # You can modify this portion
 	# Loop header
 	xorq %rax,%rax		# count = 0;
-	andq %rdx,%rdx		# len > 0?
-	jg Loop
-	ret
-Loop:
-	mrmovq (%rdi), %r10	# read val from src...
-	rmmovq %r10, (%rsi)	# ...and store it to dst
-	andq %r10, %r10		# val <= 0?
-	jle Npos			# if so, goto Npos:
+	iaddq $-8, %rdx		# len -= 8
+	jge Loop			# if len >= 0, goto Loop
+	jmp Rest
+Loop:						# use Loop Unrolling 8x8
+	mrmovq (%rdi), %r10		# read val1 from src...
+	mrmovq 8(%rdi), %r11	# read val2 from src+8...
+	mrmovq 16(%rdi), %r12	# read val3 from src+16...
+	mrmovq 24(%rdi), %r13	# read val4 from src+24...
+	mrmovq 32(%rdi), %r14	# read val5 from src+32...
+	mrmovq 40(%rdi), %r8	# read val6 from src+40...
+	mrmovq 48(%rdi), %r9	# read val7 from src+48...
+	mrmovq 56(%rdi), %rcx	# read val8 from src+56...
+	rmmovq %r10, (%rsi)		# store val1 to dst
+	rmmovq %r11, 8(%rsi)	# store val2 to dst+8
+	rmmovq %r12, 16(%rsi)	# store val3 to dst+16
+	rmmovq %r13, 24(%rsi)	# store val4 to dst+24
+	rmmovq %r14, 32(%rsi)	# store val5 to dst+32
+	rmmovq %r8, 40(%rsi)	# store val6 to dst+40
+	rmmovq %r9, 48(%rsi)	# store val7 to dst+48
+	rmmovq %rcx, 56(%rsi)	# store val8 to dst+56
+	andq %r10, %r10		# val1 <= 0?
+	jle Test2			# if so, goto Test2:
 	iaddq $1, %rax		# count++
+Test2:
+	andq %r11, %r11		# val2 <= 0?
+	jle Test3			# if so, goto Test3:
+	iaddq $1, %rax		# count++
+Test3:
+	andq %r12, %r12		# val3 <= 0?
+	jle Test4			# if so, goto Test4:
+	iaddq $1, %rax		# count++
+Test4:
+	andq %r13, %r13		# val4 <= 0?
+	jle Test5
+	iaddq $1, %rax		# count++
+Test5:
+	andq %r14, %r14		# val5 <= 0?
+	jle Test6
+	iaddq $1, %rax		# count++
+Test6:
+	andq %r8, %r8
+	jle Test7
+	iaddq $1, %rax
+Test7:
+	andq %r9, %r9
+	jle Test8
+	iaddq $1, %rax
+Test8:
+	andq %rcx, %rcx
+	jle Npos
+	iaddq $1, %rax
 Npos:
-	iaddq $-1, %rdx		# len--
-	iaddq $8, %rdi		# src++
-	iaddq $8, %rsi		# dst++
-	andq %rdx,%rdx		# len > 0?
-	jg Loop			# if so, goto Loop:
+	iaddq $64, %rdi		# src += 8
+	iaddq $64, %rsi		# dst += 8
+	iaddq $-8, %rdx		# len -= 8
+	jge Loop			# if len >= 0, goto Loop:
+Rest:
+	iaddq $7, %rdx		# len += 7
+	jg L1
+	je L0
+	ret
+L0: # last 1
+	mrmovq (%rdi), %r10		# read val from src...
+	rmmovq %r10, (%rsi)		# store val to dst
+	andq %r10, %r10			# val <= 0?
+	jle L00
+	iaddq $1, %rax			# count++
+L00:
+	ret
+L1:		# unrolling loop 2x2
+	mrmovq (%rdi), %r10		# read val1 from src...
+	mrmovq 8(%rdi), %r11	# read val2 from src...
+	rmmovq %r10, (%rsi)		# store val1 to dst
+	rmmovq %r11, 8(%rsi)	# store val2 to dst
+	andq %r10, %r10			# val <= 0?
+	jle L2
+	iaddq $1, %rax			# count++
+L2:
+	andq %r11, %r11			# val <= 0?
+	jle L3
+	iaddq $1, %rax			# count++
+L3:
+	iaddq $16, %rdi		# src += 2
+	iaddq $16, %rsi		# dst += 2
+	iaddq $-2, %rdx		# len -= 2
+	jg L1
+	je L0
+	ret
+
 ##################################################################
 # Do not modify the following section of code
 # Function epilogue.
