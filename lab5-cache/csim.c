@@ -21,7 +21,7 @@ typedef struct Cache {
     Set* sets;
 } Cache;
 
-ListNode* createNode(int valid, int tag) {
+ListNode* createNode(unsigned valid, unsigned tag) {
     ListNode* newNode = (ListNode*)malloc(sizeof(ListNode));
     newNode->valid = valid;
     newNode->tag = tag;
@@ -68,14 +68,32 @@ unsigned getTag(unsigned long addr, int s, int b) {
     return addr >> (s + b);
 }
 
+void status(Cache* cache, unsigned iset, unsigned tag) {
+    // debug function
+    ListNode *p = cache->sets[iset].line_head->next;
+    printf("valid\ttag\t%u\t%u\n", tag, iset);
+    while (p)
+    {
+        printf("%d\t\t%u\twill hit: %d\n", p->valid, p->tag, p->tag==tag);
+        p = p->next;
+    }
+}
+
 int accessMem(Cache* cache, unsigned iset, unsigned tag) {
     Set* set = cache->sets + iset;
-    ListNode* p = set->line_head->next;
+    ListNode** p = &set->line_head->next;
     // hit
-    while (p != NULL && p != set->tail->next) {
-        if (p->valid && p->tag == tag)
+    while (*p != NULL && *p != set->tail->next) {
+        if ((*p)->valid && (*p)->tag == tag) {
+            // move p to tail
+            ListNode* temp = set->tail->next;
+            set->tail->next = *p;
+            *p = (*p)->next;
+            set->tail = set->tail->next;
+            set->tail->next = temp;
             return 0;
-        p = p->next;
+        }
+        p = &((*p)->next);
     }
     // cold miss
     if (set->tail->next) {
@@ -85,7 +103,9 @@ int accessMem(Cache* cache, unsigned iset, unsigned tag) {
         return 1;
     }
     // conflict miss with eviction
+    ListNode* temp = set->line_head;
     set->line_head = set->line_head->next;  // evict
+    free(temp);
     set->tail->next = createNode(1, tag);
     set->tail = set->tail->next;
     return 2;
